@@ -1,14 +1,17 @@
-FROM dunglas/frankenphp:1.4-php8.4-alpine
+FROM dunglas/frankenphp:1.4-php8.4
 
 # Install necessary system extensions
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
-    icu-dev \
-    oniguruma-dev \
-    postgresql-dev
+    libicu-dev \
+    libonig-dev \
+    libpq-dev \
+    unzip \
+    zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -28,7 +31,7 @@ WORKDIR /app
 # Copy application files
 COPY . .
 
-# Clear any existing bootstrap cache that might interfere with production
+# Clear any existing bootstrap cache
 RUN rm -rf bootstrap/cache/*.php
 
 # Install Composer dependencies
@@ -38,19 +41,13 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Caddy Configuration (FrankenPHP uses Caddy)
+# Caddy Configuration
 ENV SERVER_NAME=:80
-ENV PHP_INI_SCAN_DIR=:/usr/local/etc/php/conf.d
-
-# Set PHP Production settings
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-
-# Environment variables for production
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
 # Expose port
 EXPOSE 80
 
-# Start FrankenPHP with migrations
+# Start with migrations
 CMD ["sh", "-c", "php artisan migrate --force && frankenphp php-server"]
