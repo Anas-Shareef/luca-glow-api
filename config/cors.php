@@ -28,6 +28,8 @@ return [
         'https://lucaglow.com',
         'https://www.lucaglow.com',
         'https://admin.lucaglow.com',
+        'https://lucaworld.vercel.app',
+        'https://luca-world-admin.vercel.app',
     ],
 
     'allowed_origins_patterns' => [
