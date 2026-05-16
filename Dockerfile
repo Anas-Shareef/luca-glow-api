@@ -36,7 +36,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 # Caddy Configuration (FrankenPHP uses Caddy)
-ENV SERVER_NAME=:8080
+ENV SERVER_NAME=:80
 ENV PHP_INI_SCAN_DIR=:/usr/local/etc/php/conf.d
 
 # Set PHP Production settings
@@ -47,7 +47,7 @@ ENV APP_ENV=production
 ENV APP_DEBUG=false
 
 # Expose port
-EXPOSE 8080
+EXPOSE 80
 
 # Start FrankenPHP with migrations
 CMD ["sh", "-c", "php artisan migrate --force && frankenphp php-server"]
