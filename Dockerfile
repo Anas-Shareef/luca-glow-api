@@ -28,6 +28,9 @@ WORKDIR /app
 # Copy application files
 COPY . .
 
+# Clear any existing bootstrap cache that might interfere with production
+RUN rm -rf bootstrap/cache/*.php
+
 # Install Composer dependencies
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-scripts --no-scripts
