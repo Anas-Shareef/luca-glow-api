@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1.4-php8.4
+FROM php:8.4-apache
 
 # Install necessary system extensions
 RUN apt-get update && apt-get install -y \
@@ -25,8 +25,16 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     bcmath \
     pdo_pgsql
 
+# Enable Apache ModRewrite for Laravel
+RUN a2enmod rewrite
+
+# Update Apache DocumentRoot to Laravel's public folder
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
 # Set working directory
-WORKDIR /app
+WORKDIR /var/www/html
 
 # Copy application files
 COPY . .
@@ -38,16 +46,15 @@ RUN rm -rf bootstrap/cache/*.php
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Set permissions
+# Set permissions for Laravel
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Caddy Configuration
-ENV SERVER_NAME=:80
+# Environment variables for production
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-# Expose port
+# Expose port 80
 EXPOSE 80
 
-# Start with migrations
-CMD ["sh", "-c", "php artisan migrate --force && frankenphp php-server"]
+# Start with migrations and then start Apache in foreground
+CMD ["sh", "-c", "php artisan migrate --force && apache2-foreground"]
