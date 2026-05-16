@@ -49,5 +49,5 @@ ENV APP_DEBUG=false
 # Expose port
 EXPOSE 8080
 
-# Start FrankenPHP
-CMD ["frankenphp", "php-server"]
+# Start FrankenPHP with migrations
+CMD ["sh", "-c", "php artisan migrate --force && frankenphp php-server"]
