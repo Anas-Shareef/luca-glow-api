@@ -1,0 +1,16 @@
+.env
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+.git
+.github
+/tests
+.editorconfig
+.styleci.yml
+phpunit.xml
+.env.backup
+.env.production
+docker-compose.yml
+Dockerfile
+.dockerignore

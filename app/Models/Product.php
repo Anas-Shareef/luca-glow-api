@@ -1,0 +1,203 @@
+<?php
+// ============================================================
+// Product.php
+// ============================================================
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+
+class Product extends Model implements HasMedia
+{
+    use HasFactory, SoftDeletes, InteractsWithMedia;
+
+    protected $fillable = [
+        'category_id', 'sku', 'name', 'slug', 'type',
+        'description', 'ingredients', 'how_to_use',
+        'skin_type', 'gender', 'volume',
+        'price_inr', 'special_price',
+        'special_price_starts_at', 'special_price_ends_at',
+        'stock_quantity', 'low_stock_threshold',
+        'meta_title', 'meta_description', 'shipping_returns', 'is_active',
+    ];
+
+    protected $casts = [
+        'is_active'               => 'boolean',
+        'special_price_starts_at' => 'datetime',
+        'special_price_ends_at'   => 'datetime',
+        'price_inr'               => 'integer',
+        'special_price'           => 'integer',
+        'stock_quantity'          => 'integer',
+    ];
+
+    // ── Relationships ─────────────────────────────────────────
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function attributeValues()
+    {
+        return $this->hasMany(ProductAttributeValue::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    // ── Spatie Media Library ──────────────────────────────────
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('gallery')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+            ->withResponsiveImages();
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(200)->height(200)
+            ->format('webp')
+            ->performOnCollections('gallery');
+
+        $this->addMediaConversion('medium')
+            ->width(600)->height(600)
+            ->format('webp')
+            ->performOnCollections('gallery');
+    }
+
+    // ── Accessors ─────────────────────────────────────────────
+
+    /** Effective selling price — respects sale schedule */
+    protected function effectivePrice(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->special_price) return $this->price_inr;
+
+                $now = now();
+                $inWindow =
+                    (!$this->special_price_starts_at || $now->gte($this->special_price_starts_at)) &&
+                    (!$this->special_price_ends_at   || $now->lte($this->special_price_ends_at));
+
+                return $inWindow ? $this->special_price : $this->price_inr;
+            }
+        );
+    }
+
+    protected function discountPercentage(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->special_price || !$this->price_inr) return null;
+                return round((($this->price_inr - $this->special_price) / $this->price_inr) * 100);
+            }
+        );
+    }
+
+    protected function isLowStock(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->stock_quantity <= $this->low_stock_threshold
+        );
+    }
+
+    protected function coverImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $media = $this->getFirstMedia('gallery');
+                return $media ? $media->getUrl('medium') : null;
+            }
+        );
+    }
+
+    protected function newArrival(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // Within last 30 days
+                return $this->created_at && $this->created_at->gt(now()->subDays(30));
+            }
+        );
+    }
+
+    protected function bestSeller(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // If it has at least 5 order items (or use a threshold)
+                // Note: order_items_count needs to be eager loaded or calculated
+                return ($this->order_items_count ?? 0) >= 5;
+            }
+        );
+    }
+
+    /** Returns an array of dynamic tags for the product */
+    protected function dynamicTags(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $tags = [];
+                if ($this->new_arrival)    $tags[] = 'New Arrival';
+                if ($this->best_seller)    $tags[] = 'Best Seller';
+                if ($this->is_low_stock)   $tags[] = 'Low Stock';
+                if ($this->discount_percentage > 0) $tags[] = 'Sale';
+                
+                // Dynamic Trendy/Featured logic
+                if ($this->best_seller || $this->new_arrival) $tags[] = 'Trendy';
+                // Mock rating check for Featured (assuming rating is handled or mocked in controller)
+                // For now, if it's a best seller, it's also featured
+                if ($this->best_seller) $tags[] = 'Featured';
+
+                return $tags;
+            }
+        );
+    }
+
+    protected function averageRating(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                return round($this->reviews()->where('is_published', true)->avg('rating') ?: 0, 1);
+            }
+        );
+    }
+
+    protected function reviewCount(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->reviews()->where('is_published', true)->count()
+        );
+    }
+
+    // ── Scopes ────────────────────────────────────────────────
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeLowStock($query)
+    {
+        return $query->whereColumn('stock_quantity', '<=', 'low_stock_threshold');
+    }
+
+    public function scopeSearch($query, string $term)
+    {
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('sku',  'like', "%{$term}%");
+        });
+    }
+}
