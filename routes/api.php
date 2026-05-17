@@ -19,31 +19,51 @@ use App\Http\Controllers\Api\ReviewController;
 Route::post('/auth/admin/login', [AuthController::class, 'login']);
 
 Route::get('/v1/debug-logs', function () {
-    $logPath = storage_path('logs/laravel.log');
-    if (!file_exists($logPath)) {
-        return response()->json(['message' => 'No log file found at ' . $logPath]);
-    }
-    
-    $lines = [];
-    $file = new SplFileObject($logPath, 'r');
-    $file->seek(PHP_INT_MAX);
-    $totalLines = $file->key();
-    
-    $start = max(0, $totalLines - 150);
-    $file->seek($start);
-    
-    while (!$file->eof()) {
-        $line = trim($file->current());
-        if ($line) {
-            $lines[] = $line;
+    try {
+        $product = \App\Models\Product::first();
+        if (!$product) {
+            return response()->json(['message' => 'No products found to test with.']);
         }
-        $file->next();
+        
+        // Create mock image
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_img') . '.png';
+        $img = imagecreatetruecolor(100, 100);
+        $color = imagecolorallocate($img, 255, 182, 193);
+        imagefill($img, 0, 0, $color);
+        imagepng($img, $tempFile);
+        imagedestroy($img);
+        
+        $file = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'test_image.png',
+            'image/png',
+            null,
+            true
+        );
+        
+        $media = $product->addMedia($file)
+            ->usingFileName(\Illuminate\Support\Str::uuid() . '.webp')
+            ->toMediaCollection('gallery');
+            
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Uploaded successfully!',
+            'media' => [
+                'id' => $media->id,
+                'disk' => $media->disk,
+                'url' => $media->getUrl()
+            ]
+        ]);
+        
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'error_message' => $e->getMessage(),
+            'error_file' => $e->getFile(),
+            'error_line' => $e->getLine(),
+            'error_trace' => explode("\n", $e->getTraceAsString())
+        ], 500);
     }
-    
-    return response()->json([
-        'total_lines' => $totalLines,
-        'recent_lines' => array_reverse($lines)
-    ]);
 });
 
 // ─── Admin routes — temporarily moved out of auth for easy dev ────────────────
