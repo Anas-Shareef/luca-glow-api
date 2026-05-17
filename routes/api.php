@@ -18,6 +18,34 @@ use App\Http\Controllers\Api\ReviewController;
 
 Route::post('/auth/admin/login', [AuthController::class, 'login']);
 
+Route::get('/v1/debug-logs', function () {
+    $logPath = storage_path('logs/laravel.log');
+    if (!file_exists($logPath)) {
+        return response()->json(['message' => 'No log file found at ' . $logPath]);
+    }
+    
+    $lines = [];
+    $file = new SplFileObject($logPath, 'r');
+    $file->seek(PHP_INT_MAX);
+    $totalLines = $file->key();
+    
+    $start = max(0, $totalLines - 150);
+    $file->seek($start);
+    
+    while (!$file->eof()) {
+        $line = trim($file->current());
+        if ($line) {
+            $lines[] = $line;
+        }
+        $file->next();
+    }
+    
+    return response()->json([
+        'total_lines' => $totalLines,
+        'recent_lines' => array_reverse($lines)
+    ]);
+});
+
 // ─── Admin routes — temporarily moved out of auth for easy dev ────────────────
 Route::prefix('v1')->group(function () {
     Route::prefix('admin')->group(function () {
