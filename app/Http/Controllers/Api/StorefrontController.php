@@ -37,9 +37,9 @@ class StorefrontController
                     'shipping_returns' => $p->shipping_returns ? array_values(array_filter(preg_split('/\n/', $p->shipping_returns))) : [],
                     'benefits' => [],
                     'description' => $p->description ?? '',
-                    'image' => count($p->getMedia('gallery')) > 0 ? $p->getMedia('gallery')[0]->getUrl() : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
-                    'imageHover' => count($p->getMedia('gallery')) > 1 ? $p->getMedia('gallery')[1]->getUrl() : 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
-                    'gallery' => $p->getMedia('gallery')->map(fn($m) => $m->getUrl()),
+                    'image' => count($p->getMedia('gallery')) > 0 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[0]->getUrl()) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
+                    'imageHover' => count($p->getMedia('gallery')) > 1 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[1]->getUrl()) : 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
+                    'gallery' => $p->getMedia('gallery')->map(fn($m) => $this->ensureAbsoluteUrl($m->getUrl())),
                     'bestSeller' => $p->best_seller,
                     'newArrival' => $p->new_arrival,
                 ];
@@ -50,7 +50,7 @@ class StorefrontController
                 'slug' => $c->slug,
                 'name' => $c->name,
                 'description' => $c->description ?? '',
-                'image' => count($c->getMedia('banner')) > 0 ? $c->getFirstMediaUrl('banner') : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
+                'image' => count($c->getMedia('banner')) > 0 ? $this->ensureAbsoluteUrl($c->getFirstMediaUrl('banner')) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
             ];
         });
 
@@ -61,8 +61,8 @@ class StorefrontController
                 'subtitle'    => $s->subtitle,
                 'button_text' => $s->button_text,
                 'link_url'    => $s->link_url,
-                'image_url'   => $s->getFirstMediaUrl('banner', 'banner_webp') ?: $s->getFirstMediaUrl('banner'),
-                'mobile_url'  => $s->getFirstMediaUrl('mobile_banner', 'banner_webp') ?: $s->getFirstMediaUrl('mobile_banner'),
+                'image_url'   => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('banner', 'banner_webp') ?: $s->getFirstMediaUrl('banner')),
+                'mobile_url'  => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('mobile_banner', 'banner_webp') ?: $s->getFirstMediaUrl('mobile_banner')),
                 'is_live'     => $s->isCurrentlyActive(),
             ];
         })->filter(fn($s) => $s['is_live'])->values();
@@ -72,6 +72,15 @@ class StorefrontController
             'categories' => $categories,
             'sliders' => $sliders
         ]);
+    }
+
+    private function ensureAbsoluteUrl(?string $url): ?string
+    {
+        if (!$url) return null;
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+        return rtrim(request()->root(), '/') . '/' . ltrim($url, '/');
     }
 
     public function validateCoupon(\Illuminate\Http\Request $request)

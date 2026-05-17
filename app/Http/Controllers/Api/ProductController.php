@@ -231,7 +231,7 @@ class ProductController extends Controller
             'dynamic_tags'     => $p->dynamic_tags,
             'average_rating'   => $p->average_rating,
             'review_count'     => $p->review_count,
-            'cover_image'      => $p->getFirstMediaUrl('gallery', 'medium'),
+            'cover_image'      => $this->ensureAbsoluteUrl($p->getFirstMediaUrl('gallery', 'medium')),
             'media'            => $p->getMedia('gallery')->map(fn ($m) => $this->mediaTransform($m)),
             'created_at'       => $p->created_at->toDateString(),
         ];
@@ -241,10 +241,19 @@ class ProductController extends Controller
     {
         return [
             'id'        => $m->id,
-            'url'       => $m->getUrl('medium'),
-            'thumb_url' => $m->getUrl('thumb'),
-            'original'  => $m->getUrl(),
+            'url'       => $this->ensureAbsoluteUrl($m->getUrl('medium')),
+            'thumb_url' => $this->ensureAbsoluteUrl($m->getUrl('thumb')),
+            'original'  => $this->ensureAbsoluteUrl($m->getUrl()),
             'order'     => $m->order_column,
         ];
+    }
+
+    private function ensureAbsoluteUrl(?string $url): ?string
+    {
+        if (!$url) return null;
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+        return rtrim(request()->root(), '/') . '/' . ltrim($url, '/');
     }
 }
