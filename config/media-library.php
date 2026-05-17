@@ -62,6 +62,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'responsive_images' => [
+        'width_calculator' => Spatie\MediaLibrary\ResponsiveImages\WidthCalculator\FileSizeOptimizedWidthCalculator::class,
         'use_tiny_placeholders' => true,
         'tiny_placeholder_generator' => Spatie\MediaLibrary\ResponsiveImages\TinyPlaceholderGenerator\Blurred::class,
     ],
