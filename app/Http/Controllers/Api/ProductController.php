@@ -251,6 +251,10 @@ class ProductController extends Controller
     private function ensureAbsoluteUrl(?string $url): ?string
     {
         if (!$url) return null;
+        
+        // Strip out literal newlines, carriage returns, tabs, and leading/trailing whitespace
+        $url = trim(str_replace(["\r", "\n", "\t"], '', $url));
+
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
             return $url;
         }
