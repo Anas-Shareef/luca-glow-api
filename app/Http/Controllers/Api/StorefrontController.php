@@ -81,6 +81,9 @@ class StorefrontController
         // Strip out literal newlines, carriage returns, tabs, and leading/trailing whitespace
         $url = trim(str_replace(["\r", "\n", "\t"], '', $url));
 
+        // Auto-heal any misconfigured legacy "products" bucket URLs to the new "media" bucket
+        $url = str_replace('/object/public/products', '/object/public/media', $url);
+
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
             return $url;
         }
