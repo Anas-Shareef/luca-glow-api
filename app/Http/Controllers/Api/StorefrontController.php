@@ -48,6 +48,8 @@ class StorefrontController
 
             $categories = Category::with('media')->active()->get()->map(function ($c) {
                 return [
+                    'id' => $c->id,
+                    'parent_id' => $c->parent_id,
                     'slug' => $c->slug,
                     'name' => $c->name,
                     'description' => $c->description ?? '',
