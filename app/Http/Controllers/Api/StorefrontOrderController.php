@@ -43,19 +43,22 @@ class StorefrontOrderController extends Controller
             'total'                       => 'required|integer|min:1',
         ]);
 
-        // Resolve products from slugs
-        $slugs    = collect($data['items'])->pluck('product_slug');
-        $products = Product::whereIn('slug', $slugs)->get()->keyBy('slug');
+        $slugs = collect($data['items'])->pluck('product_slug');
+        $user  = $request->user();
 
-        foreach ($data['items'] as $item) {
-            if (!$products->has($item['product_slug'])) {
-                return response()->json(['message' => "Product '{$item['product_slug']}' not found."], 422);
+        $order = DB::transaction(function () use ($data, $slugs, $user) {
+            // Pessimistic Locking: Lock these products specifically to prevent overselling if 2 users buy at the same millisecond
+            $products = Product::whereIn('slug', $slugs)->lockForUpdate()->get()->keyBy('slug');
+
+            foreach ($data['items'] as $item) {
+                if (!$products->has($item['product_slug'])) {
+                    abort(response()->json(['message' => "Product '{$item['product_slug']}' not found."], 422));
+                }
+                if ($products[$item['product_slug']]->stock_quantity < $item['quantity']) {
+                    abort(response()->json(['message' => "Insufficient stock for product '{$products[$item['product_slug']]->name}'."], 422));
+                }
             }
-        }
 
-        $user = $request->user();
-
-        $order = DB::transaction(function () use ($data, $products, $user) {
             // Create order
             $order = Order::create([
                 'customer_id'         => $user->id,
