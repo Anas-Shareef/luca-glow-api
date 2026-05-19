@@ -12,6 +12,8 @@ use App\Models\Coupon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderPlaced;
 
 class StorefrontOrderController extends Controller
 {
@@ -115,6 +117,13 @@ class StorefrontOrderController extends Controller
 
         // Trigger group automation (e.g. First-Time -> Regular)
         $user->fresh()->checkAndUpgradeGroup();
+
+        // Send Order Confirmation Email
+        try {
+            Mail::to($user->email)->send(new OrderPlaced($order));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send order confirmation email: ' . $e->getMessage());
+        }
 
         // Clear storefront cache to update live stock
         \Illuminate\Support\Facades\Cache::forget('storefront_data');
