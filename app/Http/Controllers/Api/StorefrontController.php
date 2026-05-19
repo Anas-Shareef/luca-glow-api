@@ -11,67 +11,71 @@ class StorefrontController
 {
     public function data()
     {
-        $products = Product::with(['category', 'media'])
-            ->withCount('orderItems')
-            ->active()
-            ->get()
-            ->map(function ($p) {
+        $data = \Illuminate\Support\Facades\Cache::remember('storefront_data', 300, function () {
+            $products = Product::with(['category', 'media'])
+                ->withCount('orderItems')
+                ->active()
+                ->get()
+                ->map(function ($p) {
+                    return [
+                        'id'   => $p->id,
+                        'slug' => $p->slug,
+                        'name' => $p->name,
+                        'category' => $p->category ? $p->category->slug : null,
+                        'gender' => $p->gender ?? 'unisex',
+                        'tags' => $p->dynamic_tags,
+                        'priceInr' => $p->price_inr,
+                        'priceAed' => null,
+                        'compareAtInr' => $p->special_price ? $p->price_inr : null,
+                        'unit' => $p->volume ?? '1 unit',
+                        'unitValue' => (int) filter_var($p->volume, FILTER_SANITIZE_NUMBER_INT) ?: 1,
+                        'unitType' => str_contains($p->volume, 'g') ? 'g' : (str_contains($p->volume, 'ml') ? 'ml' : 'pack'),
+                        'inStock' => $p->stock_quantity > 0,
+                        'rating' => $p->average_rating,
+                        'reviews' => $p->review_count,
+                        'ingredients' => $p->ingredients ? array_values(array_filter(preg_split('/[\n,]+/', $p->ingredients))) : [],
+                        'how_to_use' => $p->how_to_use ? array_values(array_filter(preg_split('/[\n,]+/', $p->how_to_use))) : [],
+                        'shipping_returns' => $p->shipping_returns ? array_values(array_filter(preg_split('/\n/', $p->shipping_returns))) : [],
+                        'benefits' => [],
+                        'description' => $p->description ?? '',
+                        'image' => count($p->getMedia('gallery')) > 0 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[0]->getUrl()) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
+                        'imageHover' => count($p->getMedia('gallery')) > 1 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[1]->getUrl()) : 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
+                        'gallery' => $p->getMedia('gallery')->map(fn($m) => $this->ensureAbsoluteUrl($m->getUrl())),
+                        'bestSeller' => $p->best_seller,
+                        'newArrival' => $p->new_arrival,
+                    ];
+                });
+
+            $categories = Category::with('media')->active()->get()->map(function ($c) {
                 return [
-                    'id'   => $p->id,
-                    'slug' => $p->slug,
-                    'name' => $p->name,
-                    'category' => $p->category ? $p->category->slug : null,
-                    'gender' => $p->gender ?? 'unisex',
-                    'tags' => $p->dynamic_tags,
-                    'priceInr' => $p->price_inr,
-                    'priceAed' => null,
-                    'compareAtInr' => $p->special_price ? $p->price_inr : null,
-                    'unit' => $p->volume ?? '1 unit',
-                    'unitValue' => (int) filter_var($p->volume, FILTER_SANITIZE_NUMBER_INT) ?: 1,
-                    'unitType' => str_contains($p->volume, 'g') ? 'g' : (str_contains($p->volume, 'ml') ? 'ml' : 'pack'),
-                    'inStock' => $p->stock_quantity > 0,
-                    'rating' => $p->average_rating,
-                    'reviews' => $p->review_count,
-                    'ingredients' => $p->ingredients ? array_values(array_filter(preg_split('/[\n,]+/', $p->ingredients))) : [],
-                    'how_to_use' => $p->how_to_use ? array_values(array_filter(preg_split('/[\n,]+/', $p->how_to_use))) : [],
-                    'shipping_returns' => $p->shipping_returns ? array_values(array_filter(preg_split('/\n/', $p->shipping_returns))) : [],
-                    'benefits' => [],
-                    'description' => $p->description ?? '',
-                    'image' => count($p->getMedia('gallery')) > 0 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[0]->getUrl()) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
-                    'imageHover' => count($p->getMedia('gallery')) > 1 ? $this->ensureAbsoluteUrl($p->getMedia('gallery')[1]->getUrl()) : 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
-                    'gallery' => $p->getMedia('gallery')->map(fn($m) => $this->ensureAbsoluteUrl($m->getUrl())),
-                    'bestSeller' => $p->best_seller,
-                    'newArrival' => $p->new_arrival,
+                    'slug' => $c->slug,
+                    'name' => $c->name,
+                    'description' => $c->description ?? '',
+                    'image' => count($c->getMedia('banner')) > 0 ? $this->ensureAbsoluteUrl($c->getFirstMediaUrl('banner')) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
                 ];
             });
 
-        $categories = Category::with('media')->active()->get()->map(function ($c) {
+            $sliders = Slider::with('media')->where('is_active', true)->orderBy('sort_order')->get()->map(function ($s) {
+                return [
+                    'id'          => $s->id,
+                    'title'       => $s->title,
+                    'subtitle'    => $s->subtitle,
+                    'button_text' => $s->button_text,
+                    'link_url'    => $s->link_url,
+                    'image_url'   => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('banner', 'banner_webp') ?: $s->getFirstMediaUrl('banner')),
+                    'mobile_url'  => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('mobile_banner', 'banner_webp') ?: $s->getFirstMediaUrl('mobile_banner')),
+                    'is_live'     => $s->isCurrentlyActive(),
+                ];
+            })->filter(fn($s) => $s['is_live'])->values();
+
             return [
-                'slug' => $c->slug,
-                'name' => $c->name,
-                'description' => $c->description ?? '',
-                'image' => count($c->getMedia('banner')) > 0 ? $this->ensureAbsoluteUrl($c->getFirstMediaUrl('banner')) : 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
+                'products' => $products,
+                'categories' => $categories,
+                'sliders' => $sliders
             ];
         });
 
-        $sliders = Slider::with('media')->where('is_active', true)->orderBy('sort_order')->get()->map(function ($s) {
-            return [
-                'id'          => $s->id,
-                'title'       => $s->title,
-                'subtitle'    => $s->subtitle,
-                'button_text' => $s->button_text,
-                'link_url'    => $s->link_url,
-                'image_url'   => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('banner', 'banner_webp') ?: $s->getFirstMediaUrl('banner')),
-                'mobile_url'  => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('mobile_banner', 'banner_webp') ?: $s->getFirstMediaUrl('mobile_banner')),
-                'is_live'     => $s->isCurrentlyActive(),
-            ];
-        })->filter(fn($s) => $s['is_live'])->values();
-
-        return response()->json([
-            'products' => $products,
-            'categories' => $categories,
-            'sliders' => $sliders
-        ]);
+        return response()->json($data);
     }
 
     private function ensureAbsoluteUrl(?string $url): ?string

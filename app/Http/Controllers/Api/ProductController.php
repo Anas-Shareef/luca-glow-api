@@ -63,6 +63,8 @@ class ProductController extends Controller
             return $product;
         });
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($product->load(['category', 'media'])), 201);
     }
 
@@ -96,6 +98,8 @@ class ProductController extends Controller
             }
         });
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($product->fresh()->load(['category', 'media'])));
     }
 
@@ -105,6 +109,7 @@ class ProductController extends Controller
     public function destroy(Product $product): JsonResponse
     {
         $product->delete();
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['message' => 'Product deleted.']);
     }
 
@@ -114,6 +119,7 @@ class ProductController extends Controller
     public function toggleStatus(Product $product): JsonResponse
     {
         $product->update(['is_active' => !$product->is_active]);
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['is_active' => $product->fresh()->is_active]);
     }
 
@@ -143,6 +149,8 @@ class ProductController extends Controller
             $added[] = $this->mediaTransform($media);
         }
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json(['media' => $added], 201);
     }
 
@@ -153,6 +161,7 @@ class ProductController extends Controller
     {
         abort_if($media->model_id !== $product->id, 404);
         $media->delete();
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['message' => 'Image deleted.']);
     }
 
@@ -165,6 +174,7 @@ class ProductController extends Controller
         $request->validate(['order' => 'required|array']);
 
         Media::setNewOrder($request->order);
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
 
         return response()->json(['message' => 'Media reordered.']);
     }

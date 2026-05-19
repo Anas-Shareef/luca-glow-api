@@ -113,6 +113,9 @@ class StorefrontOrderController extends Controller
         // Trigger group automation (e.g. First-Time -> Regular)
         $user->fresh()->checkAndUpgradeGroup();
 
+        // Clear storefront cache to update live stock
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json([
             'message'      => 'Order placed successfully!',
             'order_number' => $order->order_number,
@@ -216,6 +219,9 @@ class StorefrontOrderController extends Controller
                 'changed_by'        => $request->user()->id,
             ]);
         });
+
+        // Clear storefront cache to update live stock
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
 
         return response()->json(['message' => 'Order has been cancelled successfully.']);
     }

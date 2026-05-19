@@ -39,6 +39,8 @@ class SliderController extends Controller
                 ->toMediaCollection('banner');
         }
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($slider->load('media')), 201);
     }
 
@@ -69,6 +71,8 @@ class SliderController extends Controller
                 ->toMediaCollection('banner');
         }
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($slider->fresh()->load('media')));
     }
 
@@ -76,12 +80,14 @@ class SliderController extends Controller
     {
         $slider->clearMediaCollection('banner');
         $slider->delete();
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['message' => 'Slider deleted.']);
     }
 
     public function toggleStatus(Slider $slider): JsonResponse
     {
         $slider->update(['is_active' => !$slider->is_active]);
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['is_active' => $slider->fresh()->is_active]);
     }
 
@@ -91,6 +97,7 @@ class SliderController extends Controller
         foreach ($request->order as $position => $id) {
             Slider::where('id', $id)->update(['sort_order' => $position]);
         }
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['message' => 'Sliders reordered.']);
     }
 

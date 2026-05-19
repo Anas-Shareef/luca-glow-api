@@ -36,6 +36,8 @@ class CategoryController extends Controller
             $category->addMedia($request->file('banner'))->toMediaCollection('banner');
         }
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($category), 201);
     }
 
@@ -63,6 +65,8 @@ class CategoryController extends Controller
             $category->addMedia($request->file('banner'))->toMediaCollection('banner');
         }
 
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
         return response()->json($this->transform($category->fresh()));
     }
 
@@ -72,12 +76,14 @@ class CategoryController extends Controller
             return response()->json(['message' => 'Cannot delete category with products.'], 422);
         }
         $category->delete();
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['message' => 'Category deleted.']);
     }
 
     public function toggleStatus(Category $category): JsonResponse
     {
         $category->update(['is_active' => !$category->is_active]);
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
         return response()->json(['is_active' => $category->fresh()->is_active]);
     }
 
