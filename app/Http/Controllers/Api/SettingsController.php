@@ -181,8 +181,13 @@ class SettingsController extends Controller
     public function getPromo(): JsonResponse
     {
         $mediaUrl = Setting::get('promo_image_url');
-        if ($mediaUrl && !str_starts_with($mediaUrl, 'http')) {
-            $mediaUrl = asset(Storage::url($mediaUrl));
+        if ($mediaUrl) {
+            if (!str_starts_with($mediaUrl, 'http')) {
+                $mediaUrl = asset(Storage::url($mediaUrl));
+            }
+            if (str_starts_with($mediaUrl, 'http://') && !str_contains($mediaUrl, 'localhost') && !str_contains($mediaUrl, '127.0.0.1')) {
+                $mediaUrl = 'https://' . substr($mediaUrl, 7);
+            }
         }
 
         return response()->json([
@@ -217,8 +222,13 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($oldPath);
             }
             
+            $url = asset(Storage::url($path));
+            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                $url = 'https://' . substr($url, 7);
+            }
+            
             Setting::set('promo_image_path', $path, 'promo');
-            Setting::set('promo_image_url', asset(Storage::url($path)), 'promo');
+            Setting::set('promo_image_url', $url, 'promo');
         }
 
         \Illuminate\Support\Facades\Cache::forget('storefront_data');
