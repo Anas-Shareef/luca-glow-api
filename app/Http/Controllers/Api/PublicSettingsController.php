@@ -27,6 +27,11 @@ class PublicSettingsController extends Controller
             'maintenance_msg' => $general['maintenance_msg'] ?? 'We\'re upgrading our store experience. Back soon!',
             'currency'      => 'INR',
             'currency_symbol' => '₹',
+            'policy_privacy'  => $general['policy_privacy'] ?? '',
+            'policy_terms'    => $general['policy_terms'] ?? '',
+            'policy_return'   => $general['policy_return'] ?? '',
+            'policy_faq'      => $general['policy_faq'] ?? '',
+            'policy_shipping' => $general['policy_shipping'] ?? '',
         ];
 
         return response()->json($settings);

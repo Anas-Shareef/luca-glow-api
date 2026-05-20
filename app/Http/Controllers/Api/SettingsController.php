@@ -45,6 +45,11 @@ class SettingsController extends Controller
             'gst_number'     => 'nullable|string|max:20',
             'maintenance'    => 'boolean',
             'maintenance_msg'=> 'nullable|string|max:500',
+            'policy_privacy' => 'nullable|string',
+            'policy_terms'   => 'nullable|string',
+            'policy_return'  => 'nullable|string',
+            'policy_faq'     => 'nullable|string',
+            'policy_shipping'=> 'nullable|string',
         ]);
 
         $groups = [
@@ -58,6 +63,11 @@ class SettingsController extends Controller
             'gst_number'      => 'regional',
             'maintenance'     => 'general',
             'maintenance_msg' => 'general',
+            'policy_privacy'  => 'general',
+            'policy_terms'    => 'general',
+            'policy_return'   => 'general',
+            'policy_faq'      => 'general',
+            'policy_shipping' => 'general',
         ];
 
         foreach ($data as $key => $value) {
