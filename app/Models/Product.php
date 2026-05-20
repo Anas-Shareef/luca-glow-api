@@ -127,8 +127,19 @@ class Product extends Model implements HasMedia
     {
         return Attribute::make(
             get: function () {
-                // Within last 30 days
-                return $this->created_at && $this->created_at->gt(now()->subDays(30));
+                $cutoff = \Illuminate\Support\Facades\Cache::remember('new_arrival_cutoff', 3600, function() {
+                    $threshold = now()->subDays(90);
+                    $hasNew = \App\Models\Product::where('created_at', '>', $threshold)->exists();
+                    if ($hasNew) {
+                        return $threshold;
+                    }
+                    $twelfth = \App\Models\Product::orderBy('created_at', 'desc')
+                        ->skip(11)
+                        ->first();
+                    return $twelfth ? $twelfth->created_at : now()->subDays(365);
+                });
+
+                return $this->created_at && $this->created_at->gte($cutoff);
             }
         );
     }
@@ -137,9 +148,25 @@ class Product extends Model implements HasMedia
     {
         return Attribute::make(
             get: function () {
-                // If it has at least 5 order items (or use a threshold)
-                // Note: order_items_count needs to be eager loaded or calculated
-                return ($this->order_items_count ?? 0) >= 5;
+                $bestsellerIds = \Illuminate\Support\Facades\Cache::remember('bestseller_product_ids', 3600, function() {
+                    $ids = \App\Models\Product::withCount('orderItems')
+                        ->having('order_items_count', '>=', 3)
+                        ->pluck('id')
+                        ->toArray();
+                    
+                    if (count($ids) >= 4) {
+                        return $ids;
+                    }
+                    
+                    return \App\Models\Product::withCount('orderItems')
+                        ->orderBy('order_items_count', 'desc')
+                        ->orderBy('price_inr', 'desc')
+                        ->take(12)
+                        ->pluck('id')
+                        ->toArray();
+                });
+
+                return in_array($this->id, $bestsellerIds);
             }
         );
     }

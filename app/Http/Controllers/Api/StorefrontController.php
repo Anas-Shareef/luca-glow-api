@@ -70,10 +70,24 @@ class StorefrontController
                 ];
             })->filter(fn($s) => $s['is_live'])->values();
 
+            $promoImg = \App\Models\Setting::get('promo_image_url');
+            if ($promoImg) {
+                $promoImg = $this->ensureAbsoluteUrl($promoImg);
+            }
+
+            $promo = [
+                'tag' => \App\Models\Setting::get('promo_tag', 'New Arrival'),
+                'title' => \App\Models\Setting::get('promo_title', 'Lykha Foundations'),
+                'subtitle' => \App\Models\Setting::get('promo_subtitle', 'Glow Beyond Limits'),
+                'image' => $promoImg ?? 'https://images.unsplash.com/photo-1631730486572-226d1f595b68?auto=format&fit=crop&w=600&q=80',
+                'slug' => \App\Models\Setting::get('promo_slug', 'lykha-makeup'),
+            ];
+
             return [
                 'products' => $products,
                 'categories' => $categories,
-                'sliders' => $sliders
+                'sliders' => $sliders,
+                'promo' => $promo
             ];
         });
 

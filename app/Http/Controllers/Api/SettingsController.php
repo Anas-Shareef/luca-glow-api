@@ -177,4 +177,54 @@ class SettingsController extends Controller
         $user->delete();
         return response()->json(['message' => 'Staff member deleted.']);
     }
+
+    public function getPromo(): JsonResponse
+    {
+        $mediaUrl = Setting::get('promo_image_url');
+        if ($mediaUrl && !str_starts_with($mediaUrl, 'http')) {
+            $mediaUrl = asset(Storage::url($mediaUrl));
+        }
+
+        return response()->json([
+            'tag'      => Setting::get('promo_tag', 'New Arrival'),
+            'title'    => Setting::get('promo_title', 'Lykha Foundations'),
+            'subtitle' => Setting::get('promo_subtitle', 'Glow Beyond Limits'),
+            'image'    => $mediaUrl ?? 'https://images.unsplash.com/photo-1631730486572-226d1f595b68?auto=format&fit=crop&w=600&q=80',
+            'slug'     => Setting::get('promo_slug', 'lykha-makeup'),
+        ]);
+    }
+
+    public function updatePromo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'tag'      => 'required|string|max:50',
+            'title'    => 'required|string|max:100',
+            'subtitle' => 'required|string|max:100',
+            'slug'     => 'required|string|max:100',
+            'image'    => 'nullable|file|image|max:2048',
+        ]);
+
+        Setting::set('promo_tag', $request->tag, 'promo');
+        Setting::set('promo_title', $request->title, 'promo');
+        Setting::set('promo_subtitle', $request->subtitle, 'promo');
+        Setting::set('promo_slug', $request->slug, 'promo');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('settings', 'public');
+            
+            $oldPath = Setting::get('promo_image_path');
+            if ($oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            
+            Setting::set('promo_image_path', $path, 'promo');
+            Setting::set('promo_image_url', asset(Storage::url($path)), 'promo');
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
+
+        return response()->json([
+            'message' => 'New Arrival promo card updated successfully.'
+        ]);
+    }
 }

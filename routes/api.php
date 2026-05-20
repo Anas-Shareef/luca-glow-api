@@ -98,6 +98,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/settings',        [SettingsController::class, 'index']);
         Route::put('/settings',        [SettingsController::class, 'update']);
         Route::post('/settings/media', [SettingsController::class, 'uploadMedia']);
+        Route::get('/settings/promo',  [SettingsController::class, 'getPromo']);
+        Route::post('/settings/promo', [SettingsController::class, 'updatePromo']);
         Route::post('/settings/cache/clear', [SettingsController::class, 'clearCache']);
         Route::get ('/staff',          [SettingsController::class, 'staff']);
         Route::post('/staff',         [SettingsController::class, 'createStaff']);
