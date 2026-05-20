@@ -19,8 +19,23 @@ class SettingsController extends Controller
 {
     public function index(): JsonResponse
     {
+        $general = Setting::group('general');
+        
+        foreach (['store_logo', 'store_logo_dark', 'store_favicon'] as $key) {
+            if (!empty($general[$key])) {
+                $path = $general[$key];
+                $url = filter_var($path, FILTER_VALIDATE_URL) ? $path : asset(Storage::url($path));
+                if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                    $url = 'https://' . substr($url, 7);
+                }
+                $general[$key . '_url'] = $url;
+            } else {
+                $general[$key . '_url'] = null;
+            }
+        }
+
         return response()->json([
-            'general'  => Setting::group('general'),
+            'general'  => $general,
             'regional' => Setting::group('regional'),
             'seo'      => Setting::group('seo'),
         ]);

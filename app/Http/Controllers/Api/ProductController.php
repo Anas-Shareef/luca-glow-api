@@ -269,8 +269,17 @@ class ProductController extends Controller
         $url = str_replace('/object/public/products', '/object/public/media', $url);
 
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                $url = 'https://' . substr($url, 7);
+            }
             return $url;
         }
-        return rtrim(request()->root(), '/') . '/' . ltrim($url, '/');
+
+        $root = rtrim(request()->root(), '/');
+        if (str_starts_with($root, 'http://') && !str_contains($root, 'localhost') && !str_contains($root, '127.0.0.1')) {
+            $root = 'https://' . substr($root, 7);
+        }
+
+        return $root . '/' . ltrim($url, '/');
     }
 }
