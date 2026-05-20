@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
         // Contact Messages
         Route::get('/contact-messages', [ContactMessageController::class, 'index']);
         Route::post('/contact-messages/{message}/reply', [ContactMessageController::class, 'reply']);
+        Route::delete('/contact-messages/{message}', [ContactMessageController::class, 'destroy']);
     });
 
     // Auth

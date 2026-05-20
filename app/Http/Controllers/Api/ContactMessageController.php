@@ -75,4 +75,17 @@ class ContactMessageController extends Controller
             'data' => $message
         ]);
     }
+
+    /**
+     * Delete a contact message (Admin only).
+     */
+    public function destroy(ContactMessage $message): JsonResponse
+    {
+        $message->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Message deleted successfully!'
+        ]);
+    }
 }
