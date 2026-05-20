@@ -160,6 +160,108 @@ class DashboardController extends Controller
         return response()->json($orders);
     }
 
+    /**
+     * GET /api/v1/admin/dashboard/notifications
+     * Aggregate business notifications dynamically.
+     */
+    public function notifications(): JsonResponse
+    {
+        $notifications = collect();
+
+        // 1. Low Stock Alerts (Red Dot)
+        $lowStockProducts = Product::active()
+            ->lowStock()
+            ->select('id', 'name', 'stock_quantity', 'updated_at')
+            ->limit(10)
+            ->get();
+
+        foreach ($lowStockProducts as $p) {
+            $notifications->push([
+                'id' => 'low_stock_' . $p->id,
+                'text' => "Low stock: {$p->name} ({$p->stock_quantity} left)",
+                'timestamp' => $p->updated_at->toIso8601String(),
+                'dot' => 'bg-red-400',
+                'type' => 'low_stock',
+                'link' => "/products/{$p->id}",
+            ]);
+        }
+
+        // 2. New Orders (Green Dot, last 48 hours or latest 10 orders)
+        $recentOrders = Order::where('created_at', '>=', now()->subDays(2))
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        foreach ($recentOrders as $o) {
+            $notifications->push([
+                'id' => 'new_order_' . $o->id,
+                'text' => "New order #{$o->order_number} ({$o->status})",
+                'timestamp' => $o->created_at->toIso8601String(),
+                'dot' => 'bg-green-400',
+                'type' => 'order',
+                'link' => "/orders",
+            ]);
+        }
+
+        // 3. New Customers (Blue Dot, last 7 days)
+        $newCustomers = User::whereDoesntHave('roles', fn ($q) => $q->whereIn('name', ['Super Admin', 'Order Manager', 'Catalog Editor', 'Viewer']))
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        foreach ($newCustomers as $c) {
+            $notifications->push([
+                'id' => 'new_customer_' . $c->id,
+                'text' => "New customer: {$c->name}",
+                'timestamp' => $c->created_at->toIso8601String(),
+                'dot' => 'bg-blue-400',
+                'type' => 'customer',
+                'link' => "/customers",
+            ]);
+        }
+
+        // 4. New Contact Inquiries (Yellow Dot, unreplied)
+        $newInquiries = \App\Models\ContactMessage::whereNull('replied_at')
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        foreach ($newInquiries as $m) {
+            $notifications->push([
+                'id' => 'new_inquiry_' . $m->id,
+                'text' => "New inquiry from {$m->name}",
+                'timestamp' => $m->created_at->toIso8601String(),
+                'dot' => 'bg-yellow-400',
+                'type' => 'message',
+                'link' => "/messages",
+            ]);
+        }
+
+        // 5. Expired Coupons (Yellow/Orange Dot, expired in last 7 days)
+        $expiredCoupons = \App\Models\Coupon::where('expires_at', '>=', now()->subDays(7))
+            ->where('expires_at', '<=', now())
+            ->limit(5)
+            ->get();
+
+        foreach ($expiredCoupons as $coupon) {
+            $notifications->push([
+                'id' => 'expired_coupon_' . $coupon->id,
+                'text' => "Coupon {$coupon->code} expired",
+                'timestamp' => $coupon->expires_at->toIso8601String(),
+                'dot' => 'bg-yellow-400',
+                'type' => 'coupon',
+                'link' => "/coupons",
+            ]);
+        }
+
+        // Sort by timestamp descending
+        $sorted = $notifications->sortByDesc('timestamp')->values();
+
+        return response()->json($sorted);
+    }
+
+
     // ── Private helpers ───────────────────────────────────────
     private function monthlyChart(int $year): array
     {

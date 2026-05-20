@@ -27,6 +27,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard/categories-chart', [DashboardController::class, 'categoryChart']);
         Route::get('/dashboard/low-stock',[DashboardController::class, 'lowStock']);
         Route::get('/dashboard/recent-orders', [DashboardController::class, 'recentOrders']);
+        Route::get('/dashboard/notifications', [DashboardController::class, 'notifications']);
 
         // Products
         Route::get   ('/products',            [ProductController::class, 'index']);
