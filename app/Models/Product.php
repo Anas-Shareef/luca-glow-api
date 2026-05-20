@@ -149,8 +149,7 @@ class Product extends Model implements HasMedia
         return Attribute::make(
             get: function () {
                 $bestsellerIds = \Illuminate\Support\Facades\Cache::remember('bestseller_product_ids', 3600, function() {
-                    $ids = \App\Models\Product::withCount('orderItems')
-                        ->having('order_items_count', '>=', 3)
+                    $ids = \App\Models\Product::has('orderItems', '>=', 3)
                         ->pluck('id')
                         ->toArray();
                     
