@@ -51,26 +51,27 @@ class ContactMessageController extends Controller
             'reply' => 'required|string|max:5000',
         ]);
 
-        // Set properties temporarily on the model instance
+        // Set properties and save to database first
         $message->reply = $validated['reply'];
         $message->replied_at = now();
+        $message->save();
 
         // Send email first
+        $emailSent = true;
+        $errorMsg = null;
         try {
             Mail::to($message->email)->send(new ContactReplyMail($message));
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send reply email. Please check your SMTP configuration. Error: ' . $e->getMessage(),
-            ], 500);
+            $emailSent = false;
+            $errorMsg = $e->getMessage();
         }
-
-        // Save to database only on successful email delivery
-        $message->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Reply sent successfully!',
+            'email_sent' => $emailSent,
+            'message' => $emailSent
+                ? 'Reply sent successfully!'
+                : 'Reply saved, but failed to send email. Please check your SMTP configuration on Render. Error: ' . $errorMsg,
             'data' => $message
         ]);
     }
