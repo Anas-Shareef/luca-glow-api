@@ -50,6 +50,10 @@ class SettingsController extends Controller
             'policy_return'  => 'nullable|string',
             'policy_faq'     => 'nullable|string',
             'policy_shipping'=> 'nullable|string',
+            'social_facebook'=> 'nullable|url',
+            'social_instagram'=> 'nullable|url',
+            'social_youtube' => 'nullable|url',
+            'social_twitter' => 'nullable|url',
         ]);
 
         $groups = [
@@ -68,6 +72,10 @@ class SettingsController extends Controller
             'policy_return'   => 'general',
             'policy_faq'      => 'general',
             'policy_shipping' => 'general',
+            'social_facebook' => 'general',
+            'social_instagram'=> 'general',
+            'social_youtube'  => 'general',
+            'social_twitter'  => 'general',
         ];
 
         foreach ($data as $key => $value) {
