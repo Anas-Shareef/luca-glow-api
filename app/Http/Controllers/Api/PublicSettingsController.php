@@ -35,10 +35,30 @@ class PublicSettingsController extends Controller
     private function getUrl(?string $path): ?string
     {
         if (!$path) return null;
-        $url = filter_var($path, FILTER_VALIDATE_URL) ? $path : asset(Storage::url($path));
-        if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
-            $url = 'https://' . substr($url, 7);
+        
+        $path = trim(str_replace(["\r", "\n", "\t"], '', $path));
+
+        if (filter_var($path, FILTER_VALIDATE_URL) || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            if (str_starts_with($path, 'http://') && !str_contains($path, 'localhost') && !str_contains($path, '127.0.0.1')) {
+                $path = 'https://' . substr($path, 7);
+            }
+            return $path;
         }
-        return $url;
+
+        $url = Storage::url($path);
+        
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                $url = 'https://' . substr($url, 7);
+            }
+            return $url;
+        }
+
+        $root = rtrim(request()->root(), '/');
+        if (str_starts_with($root, 'http://') && !str_contains($root, 'localhost') && !str_contains($root, '127.0.0.1')) {
+            $root = 'https://' . substr($root, 7);
+        }
+
+        return $root . '/' . ltrim($url, '/');
     }
 }

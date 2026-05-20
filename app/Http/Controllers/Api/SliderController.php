@@ -114,8 +114,29 @@ class SliderController extends Controller
             'is_live'     => $s->isCurrentlyActive(),
             'starts_at'   => $s->starts_at?->toDateString(),
             'ends_at'     => $s->ends_at?->toDateString(),
-            'image_url'   => $s->getFirstMediaUrl('banner', 'banner_webp'),
-            'mobile_url'  => $s->getFirstMediaUrl('banner', 'mobile'),
+            'image_url'   => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('banner', 'banner_webp') ?: $s->getFirstMediaUrl('banner')),
+            'mobile_url'  => $this->ensureAbsoluteUrl($s->getFirstMediaUrl('banner', 'mobile') ?: $s->getFirstMediaUrl('banner')),
         ];
+    }
+
+    private function ensureAbsoluteUrl(?string $url): ?string
+    {
+        if (!$url) return null;
+        
+        $url = trim(str_replace(["\r", "\n", "\t"], '', $url));
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                $url = 'https://' . substr($url, 7);
+            }
+            return $url;
+        }
+
+        $root = rtrim(request()->root(), '/');
+        if (str_starts_with($root, 'http://') && !str_contains($root, 'localhost') && !str_contains($root, '127.0.0.1')) {
+            $root = 'https://' . substr($root, 7);
+        }
+
+        return $root . '/' . ltrim($url, '/');
     }
 }

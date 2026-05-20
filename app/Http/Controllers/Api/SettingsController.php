@@ -22,16 +22,7 @@ class SettingsController extends Controller
         $general = Setting::group('general');
         
         foreach (['store_logo', 'store_logo_dark', 'store_favicon'] as $key) {
-            if (!empty($general[$key])) {
-                $path = $general[$key];
-                $url = filter_var($path, FILTER_VALIDATE_URL) ? $path : asset(Storage::url($path));
-                if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
-                    $url = 'https://' . substr($url, 7);
-                }
-                $general[$key . '_url'] = $url;
-            } else {
-                $general[$key . '_url'] = null;
-            }
+            $general[$key . '_url'] = !empty($general[$key]) ? $this->ensureAbsoluteUrl($general[$key]) : null;
         }
 
         return response()->json([
@@ -94,7 +85,7 @@ class SettingsController extends Controller
 
         return response()->json([
             'key' => $key,
-            'url' => asset(Storage::url($path)),
+            'url' => $this->ensureAbsoluteUrl($path),
             'message' => 'Media uploaded successfully.'
         ]);
     }
@@ -199,12 +190,7 @@ class SettingsController extends Controller
     {
         $mediaUrl = Setting::get('promo_image_url');
         if ($mediaUrl) {
-            if (!str_starts_with($mediaUrl, 'http')) {
-                $mediaUrl = asset(Storage::url($mediaUrl));
-            }
-            if (str_starts_with($mediaUrl, 'http://') && !str_contains($mediaUrl, 'localhost') && !str_contains($mediaUrl, '127.0.0.1')) {
-                $mediaUrl = 'https://' . substr($mediaUrl, 7);
-            }
+            $mediaUrl = $this->ensureAbsoluteUrl($mediaUrl);
         }
 
         return response()->json([
@@ -239,10 +225,7 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($oldPath);
             }
             
-            $url = asset(Storage::url($path));
-            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
-                $url = 'https://' . substr($url, 7);
-            }
+            $url = $this->ensureAbsoluteUrl($path);
             
             Setting::set('promo_image_path', $path, 'promo');
             Setting::set('promo_image_url', $url, 'promo');
@@ -253,5 +236,35 @@ class SettingsController extends Controller
         return response()->json([
             'message' => 'New Arrival promo card updated successfully.'
         ]);
+    }
+
+    private function ensureAbsoluteUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        
+        $path = trim(str_replace(["\r", "\n", "\t"], '', $path));
+
+        if (filter_var($path, FILTER_VALIDATE_URL) || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            if (str_starts_with($path, 'http://') && !str_contains($path, 'localhost') && !str_contains($path, '127.0.0.1')) {
+                $path = 'https://' . substr($path, 7);
+            }
+            return $path;
+        }
+
+        $url = Storage::url($path);
+        
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+                $url = 'https://' . substr($url, 7);
+            }
+            return $url;
+        }
+
+        $root = rtrim(request()->root(), '/');
+        if (str_starts_with($root, 'http://') && !str_contains($root, 'localhost') && !str_contains($root, '127.0.0.1')) {
+            $root = 'https://' . substr($root, 7);
+        }
+
+        return $root . '/' . ltrim($url, '/');
     }
 }
