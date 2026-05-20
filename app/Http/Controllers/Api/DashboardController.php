@@ -62,11 +62,12 @@ class DashboardController extends Controller
     public function salesChart(Request $request): JsonResponse
     {
         $period = $request->get('period', 'monthly'); // weekly | monthly | yearly
+        $year   = $request->get('year', now()->year);
 
         $data = match ($period) {
             'weekly' => $this->weeklyChart(),
             'yearly' => $this->yearlyChart(),
-            default  => $this->monthlyChart(),
+            default  => $this->monthlyChart((int) $year),
         };
 
         return response()->json($data);
@@ -84,9 +85,13 @@ class DashboardController extends Controller
             ->join('orders as o', 'o.id', '=', 'oi.order_id')
             ->join('products as p', 'p.id', '=', 'oi.product_id')
             ->join('categories as c', 'c.id', '=', 'p.category_id')
-            ->where('o.status', 'delivered')
-            ->groupBy('c.id', 'c.name')
-            ->select('c.name', DB::raw('SUM(oi.subtotal_inr) as total'))
+            ->leftJoin('categories as parent', 'parent.id', '=', 'c.parent_id')
+            ->whereNotIn('o.status', ['cancelled'])
+            ->groupBy(DB::raw('COALESCE(parent.id, c.id)'), DB::raw('COALESCE(parent.name, c.name)'))
+            ->select(
+                DB::raw('COALESCE(parent.name, c.name) as category_name'),
+                DB::raw('SUM(oi.subtotal_inr) as total')
+            )
             ->orderByDesc('total')
             ->limit(5)
             ->get();
@@ -95,7 +100,7 @@ class DashboardController extends Controller
 
         return response()->json(
             $rows->values()->map(fn ($r, $i) => [
-                'name'  => $r->name,
+                'name'  => $r->category_name,
                 'value' => round($r->total / $grandTotal * 100, 1),
                 'color' => $COLORS[$i % count($COLORS)],
             ])
@@ -150,16 +155,16 @@ class DashboardController extends Controller
     }
 
     // ── Private helpers ───────────────────────────────────────
-    private function monthlyChart(): array
+    private function monthlyChart(int $year): array
     {
         $months = collect(range(1, 12))->map(fn ($m) => [
             'date'    => now()->setMonth($m)->format('M'),
             'revenue' => Order::whereMonth('created_at', $m)
-                ->whereYear('created_at', now()->year)
+                ->whereYear('created_at', $year)
                 ->whereNotIn('status', ['cancelled'])
                 ->sum('total_amount_inr'),
             'orders'  => Order::whereMonth('created_at', $m)
-                ->whereYear('created_at', now()->year)
+                ->whereYear('created_at', $year)
                 ->whereNotIn('status', ['cancelled'])
                 ->count(),
         ]);
