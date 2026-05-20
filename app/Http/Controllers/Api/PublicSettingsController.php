@@ -34,7 +34,10 @@ class PublicSettingsController extends Controller
     private function getUrl(?string $path): ?string
     {
         if (!$path) return null;
-        if (filter_var($path, FILTER_VALIDATE_URL)) return $path;
-        return asset(Storage::url($path));
+        $url = filter_var($path, FILTER_VALIDATE_URL) ? $path : asset(Storage::url($path));
+        if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+            $url = 'https://' . substr($url, 7);
+        }
+        return $url;
     }
 }
