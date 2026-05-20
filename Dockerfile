@@ -57,5 +57,5 @@ ENV APP_DEBUG=false
 # Expose port 80
 EXPOSE 80
 
-# Start with migrations and then start Apache in foreground
-CMD ["sh", "-c", "php artisan migrate --force && php artisan storage:link && apache2-foreground"]
+# Start with migrations, seed footer defaults, then start Apache in foreground
+CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --class=FooterSeeder --force 2>/dev/null || true && php artisan storage:link && apache2-foreground"]
