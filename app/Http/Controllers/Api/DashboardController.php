@@ -43,6 +43,11 @@ class DashboardController extends Controller
         $totalCustomers = User::whereNull('customer_group_id')->orWhereNotNull('id')->count();
         $avgOrderValue  = $totalOrders > 0 ? (int) ($totalSales / $totalOrders) : 0;
 
+        $minYear = Order::min('created_at');
+        $startYear = $minYear ? \Carbon\Carbon::parse($minYear)->year : now()->year;
+        $endYear = now()->year;
+        $years = range($endYear, min($startYear, $endYear));
+
         return response()->json([
             'total_sales'      => $totalSales,
             'total_orders'     => $totalOrders,
@@ -52,6 +57,7 @@ class DashboardController extends Controller
             'orders_growth'    => $this->growthPct($ordersThisMonth, $ordersLastMonth),
             'customers_growth' => $this->growthPct($customersThisMonth, $customersLastMonth),
             'aov_growth'       => 0,
+            'available_years'  => $years,
         ]);
     }
 
