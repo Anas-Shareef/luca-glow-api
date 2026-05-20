@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\StorefrontOrderController;
 use App\Http\Controllers\Api\PublicSettingsController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\ContactMessageController;
+use App\Http\Controllers\Api\FooterController;
 
 Route::post('/auth/admin/login', [AuthController::class, 'login']);
 
@@ -113,6 +114,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/contact-messages', [ContactMessageController::class, 'index']);
         Route::post('/contact-messages/{message}/reply', [ContactMessageController::class, 'reply']);
         Route::delete('/contact-messages/{message}', [ContactMessageController::class, 'destroy']);
+
+        // Footer CMS
+        Route::get   ('/footer-sections',          [FooterController::class, 'adminIndex']);
+        Route::post  ('/footer-sections',          [FooterController::class, 'store']);
+        Route::put   ('/footer-sections/{id}',     [FooterController::class, 'update']);
+        Route::delete('/footer-sections/{id}',     [FooterController::class, 'destroy']);
+        Route::post  ('/footer-sections/{id}/links',[FooterController::class, 'storeLink']);
+        Route::put   ('/footer-links/{id}',        [FooterController::class, 'updateLink']);
+        Route::delete('/footer-links/{id}',        [FooterController::class, 'destroyLink']);
     });
 
     // Auth
@@ -151,4 +161,5 @@ Route::prefix('v1')->group(function () {
     Route::post('/coupons/validate', [StorefrontController::class, 'validateCoupon']);
     Route::get('/storefront/products/{slug}/reviews', [ReviewController::class, 'productReviews']);
     Route::post('/contact', [ContactMessageController::class, 'store']);
+    Route::get('/footer', [FooterController::class, 'index']);
 });
