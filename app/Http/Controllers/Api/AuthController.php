@@ -181,7 +181,12 @@ class AuthController extends Controller
 
         $payload = $response->json();
 
-        if ($payload['aud'] !== config('services.google.client_id')) {
+        $allowedClients = array_filter([
+            config('services.google.client_id'),
+            '570916511847-rnrn6vcutmq780idbess22h18b5714a5.apps.googleusercontent.com'
+        ]);
+
+        if (!in_array($payload['aud'], $allowedClients)) {
             return response()->json(['message' => 'Invalid Google client registration.'], 401);
         }
 

@@ -143,4 +143,35 @@ Route::prefix('v1')->group(function () {
     Route::get('/sliders/public',  [SliderController::class, 'index']);
     Route::post('/coupons/validate', [StorefrontController::class, 'validateCoupon']);
     Route::get('/storefront/products/{slug}/reviews', [ReviewController::class, 'productReviews']);
+
+    Route::get('/debug-logs', function () {
+        $result = null;
+        $error = null;
+        try {
+            $controller = app(App\Http\Controllers\Api\StorefrontController::class);
+            \Illuminate\Support\Facades\Cache::forget('storefront_data');
+            $res = $controller->data();
+            $result = 'SUCCESS: ' . substr($res->getContent(), 0, 100) . '...';
+        } catch (\Throwable $e) {
+            $error = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ];
+        }
+
+        $log = '';
+        if (file_exists(storage_path('logs/laravel.log'))) {
+            $logContent = file_get_contents(storage_path('logs/laravel.log'));
+            $lines = explode("\n", $logContent);
+            $log = implode("\n", array_slice($lines, -100));
+        }
+
+        return response()->json([
+            'result' => $result,
+            'error' => $error,
+            'log' => $log,
+        ]);
+    });
 });
