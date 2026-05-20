@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -158,6 +160,64 @@ class AuthController extends Controller
         return $status === Password::PASSWORD_RESET
             ? response()->json(['message' => 'Password reset successfully.'])
             : response()->json(['message' => __($status)], 400);
+    }
+
+    /**
+     * POST /api/v1/auth/google
+     */
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'credential' => 'required|string',
+        ]);
+
+        $response = Http::get('https://oauth2.googleapis.com/tokeninfo', [
+            'id_token' => $request->credential,
+        ]);
+
+        if ($response->failed()) {
+            return response()->json(['message' => 'Invalid Google credential.'], 401);
+        }
+
+        $payload = $response->json();
+
+        if ($payload['aud'] !== config('services.google.client_id')) {
+            return response()->json(['message' => 'Invalid Google client registration.'], 401);
+        }
+
+        $email = $payload['email'];
+        $name = $payload['name'] ?? $email;
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            $user = User::create([
+                'name'              => $name,
+                'email'             => $email,
+                'password'          => Hash::make(Str::random(16)),
+                'phone'             => '',
+                'is_active'         => true,
+                'customer_group_id' => \App\Models\CustomerGroup::where('name', 'First-Time')->value('id') ?? 1,
+            ]);
+
+            $customerRole = \Spatie\Permission\Models\Role::firstOrCreate(
+                ['name' => 'Customer', 'guard_name' => 'sanctum']
+            );
+            $user->assignRole($customerRole);
+        }
+
+        if (!$user->is_active) {
+            return response()->json(['message' => 'Your account has been suspended.'], 403);
+        }
+
+        $user->update(['last_login_at' => now()]);
+
+        $user->tokens()->delete();
+        $token = $user->createToken('auth-token', ['*'], now()->addDays(7))->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user'  => $this->userPayload($user),
+        ]);
     }
 
     // ── Private helpers ───────────────────────────────────────
