@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\StorefrontOrderController;
 use App\Http\Controllers\Api\PublicSettingsController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\ContactMessageController;
 
 Route::post('/auth/admin/login', [AuthController::class, 'login']);
 
@@ -106,6 +107,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('/staff/{user}/role',   [SettingsController::class, 'updateRole']);
         Route::patch('/staff/{user}/toggle', [SettingsController::class, 'toggleStaff']);
         Route::delete('/staff/{user}',       [SettingsController::class, 'deleteStaff']);
+
+        // Contact Messages
+        Route::get('/contact-messages', [ContactMessageController::class, 'index']);
+        Route::post('/contact-messages/{message}/reply', [ContactMessageController::class, 'reply']);
     });
 
     // Auth
@@ -143,4 +148,5 @@ Route::prefix('v1')->group(function () {
     Route::get('/sliders/public',  [SliderController::class, 'index']);
     Route::post('/coupons/validate', [StorefrontController::class, 'validateCoupon']);
     Route::get('/storefront/products/{slug}/reviews', [ReviewController::class, 'productReviews']);
+    Route::post('/contact', [ContactMessageController::class, 'store']);
 });
