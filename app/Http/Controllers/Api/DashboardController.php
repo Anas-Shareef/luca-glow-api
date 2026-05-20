@@ -131,7 +131,7 @@ class DashboardController extends Controller
                 'name'           => $p->name,
                 'stock_quantity' => $p->stock_quantity,
                 'threshold'      => $p->low_stock_threshold,
-                'image'          => $p->getFirstMediaUrl('gallery', 'thumb'),
+                'image'          => $this->ensureAbsoluteUrl($p->getFirstMediaUrl('gallery', 'thumb')),
             ]);
 
         return response()->json($products);
@@ -306,5 +306,31 @@ class DashboardController extends Controller
     {
         if ($previous == 0) return 0;
         return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    private function ensureAbsoluteUrl(?string $url): ?string
+    {
+        if (!$url) return null;
+        
+        $url = trim(str_replace(["\r", "\n", "\t"], '', $url));
+
+        if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            $parsed = parse_url($url);
+            $url = ($parsed['path'] ?? '') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if (str_starts_with($url, 'http://')) {
+                $url = 'https://' . substr($url, 7);
+            }
+            return $url;
+        }
+
+        $root = rtrim(request()->root(), '/');
+        if (str_starts_with($root, 'http://') && !str_contains($root, 'localhost') && !str_contains($root, '127.0.0.1')) {
+            $root = 'https://' . substr($root, 7);
+        }
+
+        return $root . '/' . ltrim($url, '/');
     }
 }

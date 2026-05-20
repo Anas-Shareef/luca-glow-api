@@ -38,17 +38,27 @@ class PublicSettingsController extends Controller
         
         $path = trim(str_replace(["\r", "\n", "\t"], '', $path));
 
+        if (str_contains($path, 'localhost') || str_contains($path, '127.0.0.1')) {
+            $parsed = parse_url($path);
+            $path = ($parsed['path'] ?? '') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
+        }
+
         if (filter_var($path, FILTER_VALIDATE_URL) || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            if (str_starts_with($path, 'http://') && !str_contains($path, 'localhost') && !str_contains($path, '127.0.0.1')) {
+            if (str_starts_with($path, 'http://')) {
                 $path = 'https://' . substr($path, 7);
             }
             return $path;
         }
 
         $url = Storage::url($path);
+
+        if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            $parsed = parse_url($url);
+            $url = ($parsed['path'] ?? '') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
+        }
         
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
-            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+            if (str_starts_with($url, 'http://')) {
                 $url = 'https://' . substr($url, 7);
             }
             return $url;

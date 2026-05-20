@@ -125,8 +125,13 @@ class SliderController extends Controller
         
         $url = trim(str_replace(["\r", "\n", "\t"], '', $url));
 
+        if (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            $parsed = parse_url($url);
+            $url = ($parsed['path'] ?? '') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
+        }
+
         if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
-            if (str_starts_with($url, 'http://') && !str_contains($url, 'localhost') && !str_contains($url, '127.0.0.1')) {
+            if (str_starts_with($url, 'http://')) {
                 $url = 'https://' . substr($url, 7);
             }
             return $url;
