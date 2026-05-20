@@ -32,6 +32,10 @@ class PublicSettingsController extends Controller
             'policy_return'   => $general['policy_return'] ?? '',
             'policy_faq'      => $general['policy_faq'] ?? '',
             'policy_shipping' => $general['policy_shipping'] ?? '',
+            'social_facebook' => $general['social_facebook'] ?? '',
+            'social_instagram'=> $general['social_instagram'] ?? '',
+            'social_youtube'  => $general['social_youtube'] ?? '',
+            'social_twitter'  => $general['social_twitter'] ?? '',
         ];
 
         return response()->json($settings);
