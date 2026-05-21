@@ -54,6 +54,7 @@ class SettingsController extends Controller
             'social_instagram'=> 'nullable|url',
             'social_youtube' => 'nullable|url',
             'social_twitter' => 'nullable|url',
+            'instagram_feed' => 'nullable',
         ]);
 
         $groups = [
@@ -76,11 +77,17 @@ class SettingsController extends Controller
             'social_instagram'=> 'general',
             'social_youtube'  => 'general',
             'social_twitter'  => 'general',
+            'instagram_feed'  => 'general',
         ];
 
         foreach ($data as $key => $value) {
+            if ($key === 'instagram_feed' && is_array($value)) {
+                $value = json_encode($value);
+            }
             Setting::set($key, $value, $groups[$key] ?? 'general');
         }
+
+        \Illuminate\Support\Facades\Cache::forget('storefront_data');
 
         return response()->json(['message' => 'Settings saved.', 'data' => $data]);
     }

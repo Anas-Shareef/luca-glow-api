@@ -83,11 +83,35 @@ class StorefrontController
                 'slug' => \App\Models\Setting::get('promo_slug', 'lykha-makeup'),
             ];
 
+            $instagramFeedRaw = \App\Models\Setting::get('instagram_feed');
+            $instagramFeed = null;
+            if ($instagramFeedRaw) {
+                $instagramFeed = json_decode($instagramFeedRaw, true);
+            }
+            if (!$instagramFeed || !is_array($instagramFeed)) {
+                $instagramFeed = [
+                    ['image_url' => 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                    ['image_url' => 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                    ['image_url' => 'https://images.unsplash.com/photo-1599733589046-8f57e5d3a907?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                    ['image_url' => 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                    ['image_url' => 'https://images.unsplash.com/photo-1556228841-a3c527ebefe5?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                    ['image_url' => 'https://images.unsplash.com/photo-1631730486572-226d1f595b68?auto=format&fit=crop&w=400&q=80', 'post_url' => 'https://instagram.com'],
+                ];
+            } else {
+                foreach ($instagramFeed as &$item) {
+                    if (isset($item['image_url'])) {
+                        $item['image_url'] = $this->ensureAbsoluteUrl($item['image_url']);
+                    }
+                }
+                unset($item);
+            }
+
             return [
                 'products' => $products,
                 'categories' => $categories,
                 'sliders' => $sliders,
-                'promo' => $promo
+                'promo' => $promo,
+                'instagram_feed' => $instagramFeed,
             ];
         });
 
