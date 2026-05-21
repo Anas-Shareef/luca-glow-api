@@ -93,17 +93,24 @@ class SettingsController extends Controller
         ]);
 
         $key = $request->key;
-        $path = $request->file('file')->store('settings', 'public');
+        
+        // Convert the file to base64 so it persists on ephemeral filesystems (e.g. Render)
+        $file = $request->file('file');
+        $mime = $file->getMimeType();
+        $base64Data = base64_encode(file_get_contents($file->getRealPath()));
+        $base64 = "data:{$mime};base64,{$base64Data}";
 
-        // Delete old file if exists
+        // Delete old file if it was a stored path
         $old = Setting::get($key);
-        if ($old) Storage::disk('public')->delete($old);
+        if ($old && !str_starts_with($old, 'data:') && !filter_var($old, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete($old);
+        }
 
-        Setting::set($key, $path, 'general');
+        Setting::set($key, $base64, 'general');
 
         return response()->json([
             'key' => $key,
-            'url' => $this->ensureAbsoluteUrl($path),
+            'url' => $base64,
             'message' => 'Media uploaded successfully.'
         ]);
     }
@@ -261,6 +268,10 @@ class SettingsController extends Controller
         if (!$path) return null;
         
         $path = trim(str_replace(["\r", "\n", "\t"], '', $path));
+
+        if (str_starts_with($path, 'data:')) {
+            return $path;
+        }
 
         if (str_contains($path, 'localhost') || str_contains($path, '127.0.0.1')) {
             $parsed = parse_url($path);

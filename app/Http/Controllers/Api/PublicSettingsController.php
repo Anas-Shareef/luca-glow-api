@@ -47,6 +47,10 @@ class PublicSettingsController extends Controller
         
         $path = trim(str_replace(["\r", "\n", "\t"], '', $path));
 
+        if (str_starts_with($path, 'data:')) {
+            return $path;
+        }
+
         if (str_contains($path, 'localhost') || str_contains($path, '127.0.0.1')) {
             $parsed = parse_url($path);
             $path = ($parsed['path'] ?? '') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
