@@ -34,6 +34,15 @@ class SettingsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
+        foreach (['social_facebook', 'social_instagram', 'social_youtube', 'social_twitter'] as $key) {
+            if ($request->filled($key)) {
+                $value = trim($request->input($key));
+                if (!preg_match('~^https?://~i', $value)) {
+                    $request->merge([$key => 'https://' . ltrim($value, '/')]);
+                }
+            }
+        }
+
         $data = $request->validate([
             'store_name'     => 'string|max:100',
             'tagline'        => 'nullable|string|max:200',
