@@ -36,7 +36,7 @@ class StorefrontOrderController extends Controller
             'shipping.pincode'            => 'required|string|max:10',
             'shipping.country'            => 'required|in:India,UAE',
             'shipping_method'             => 'required|in:standard,express',
-            'payment_method'              => 'required|string|max:30',
+            'payment_method'              => 'required|in:razorpay',
             'coupon_code'                 => 'nullable|string|max:30',
             'subtotal'                    => 'required|integer|min:0',
             'shipping_cost'               => 'required|integer|min:0',
