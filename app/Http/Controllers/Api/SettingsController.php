@@ -34,7 +34,7 @@ class SettingsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        foreach (['social_facebook', 'social_instagram', 'social_youtube', 'social_twitter'] as $key) {
+        foreach (['social_facebook', 'social_instagram', 'social_youtube', 'social_twitter', 'social_threads'] as $key) {
             if ($request->filled($key)) {
                 $value = trim($request->input($key));
                 if (!preg_match('~^https?://~i', $value)) {
@@ -63,6 +63,7 @@ class SettingsController extends Controller
             'social_instagram'=> 'nullable|url',
             'social_youtube' => 'nullable|url',
             'social_twitter' => 'nullable|url',
+            'social_threads' => 'nullable|url',
             'instagram_feed' => 'nullable',
         ]);
 
@@ -86,6 +87,7 @@ class SettingsController extends Controller
             'social_instagram'=> 'general',
             'social_youtube'  => 'general',
             'social_twitter'  => 'general',
+            'social_threads'  => 'general',
             'instagram_feed'  => 'general',
         ];
 
