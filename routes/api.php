@@ -18,6 +18,21 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\FooterController;
 
+Route::get('/run-migrations-temp', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        return response()->json([
+            'message' => 'Migrations run successfully!',
+            'output' => \Illuminate\Support\Facades\Artisan::output()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed to run migrations',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 Route::post('/auth/admin/login', [AuthController::class, 'login']);
 
 // ─── Admin routes — temporarily moved out of auth for easy dev ────────────────
