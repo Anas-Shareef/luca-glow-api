@@ -109,7 +109,7 @@ class StorefrontOrderController extends Controller
                 ]);
 
                 // Decrement stock
-                $product->decrement('stock_quantity', $item['quantity']);
+                $product->decrement('stock', $item['quantity']);
             }
 
             return $order;
@@ -202,7 +202,7 @@ class StorefrontOrderController extends Controller
             // Restore stock
             foreach ($order->items as $item) {
                 if ($item->product) {
-                    $item->product->increment('stock_quantity', $item->quantity);
+                    $item->product->increment('stock', $item->quantity);
                 }
             }
 

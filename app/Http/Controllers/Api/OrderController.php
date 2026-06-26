@@ -89,7 +89,7 @@ class OrderController extends Controller
             if ($request->status === 'cancelled' && $oldStatus !== 'cancelled') {
                 foreach ($order->items as $item) {
                     if ($item->product) {
-                        $item->product->increment('stock_quantity', $item->quantity);
+                        $item->product->increment('stock', $item->quantity);
                     }
                 }
 

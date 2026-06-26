@@ -25,20 +25,21 @@ class DashboardController extends Controller
 
         // This month
         $salesThisMonth    = Order::whereBetween('created_at', [$start, $now])
-            ->whereNotIn('status', ['cancelled'])->sum('total_amount_inr');
+            ->whereNotIn('status', ['cancelled'])->sum('total_amount_paise') / 100;
         $ordersThisMonth   = Order::whereBetween('created_at', [$start, $now])
             ->whereNotIn('status', ['cancelled'])->count();
         $customersThisMonth = User::whereBetween('created_at', [$start, $now])->count();
 
         // Previous month (for growth %)
         $salesLastMonth  = Order::whereBetween('created_at', [$prevStart, $prevEnd])
-            ->whereNotIn('status', ['cancelled'])->sum('total_amount_inr') ?: 1;
+            ->whereNotIn('status', ['cancelled'])->sum('total_amount_paise') ?: 100;
+        $salesLastMonth  = $salesLastMonth / 100;
         $ordersLastMonth = Order::whereBetween('created_at', [$prevStart, $prevEnd])
             ->whereNotIn('status', ['cancelled'])->count() ?: 1;
         $customersLastMonth = User::whereBetween('created_at', [$prevStart, $prevEnd])->count() ?: 1;
 
         // Totals (all time)
-        $totalSales     = Order::whereNotIn('status', ['cancelled'])->sum('total_amount_inr');
+        $totalSales     = Order::whereNotIn('status', ['cancelled'])->sum('total_amount_paise') / 100;
         $totalOrders    = Order::whereNotIn('status', ['cancelled'])->count();
         $totalCustomers = User::whereNull('customer_group_id')->orWhereNotNull('id')->count();
         $avgOrderValue  = $totalOrders > 0 ? (int) ($totalSales / $totalOrders) : 0;
@@ -96,7 +97,7 @@ class DashboardController extends Controller
             ->groupBy(DB::raw('COALESCE(parent.id, c.id)'), DB::raw('COALESCE(parent.name, c.name)'))
             ->select(
                 DB::raw('COALESCE(parent.name, c.name) as category_name'),
-                DB::raw('SUM(oi.subtotal_inr) as total')
+                DB::raw('SUM(oi.subtotal_paise) as total')
             )
             ->orderByDesc('total')
             ->limit(5)
@@ -121,16 +122,16 @@ class DashboardController extends Controller
         $products = Product::active()
             ->lowStock()
             ->with('media')
-            ->select('id', 'sku', 'name', 'stock_quantity', 'low_stock_threshold')
-            ->orderBy('stock_quantity')
+            ->select('id', 'sku', 'name', 'stock')
+            ->orderBy('stock')
             ->limit(8)
             ->get()
             ->map(fn ($p) => [
                 'id'             => $p->id,
                 'sku'            => $p->sku,
                 'name'           => $p->name,
-                'stock_quantity' => $p->stock_quantity,
-                'threshold'      => $p->low_stock_threshold,
+                'stock_quantity' => $p->stock,
+                'threshold'      => 10,
                 'image'          => $this->ensureAbsoluteUrl($p->getFirstMediaUrl('gallery', 'thumb')),
             ]);
 
@@ -149,7 +150,7 @@ class DashboardController extends Controller
             ->map(fn ($o) => [
                 'id'           => $o->id,
                 'order_number' => $o->order_number,
-                'customer'     => ['name' => $o->customer->name, 'email' => $o->customer->email],
+                'customer'     => ['name' => $o->customer?->name ?? 'Guest', 'email' => $o->customer?->email ?? $o->customer_email ?? 'Guest'],
                 'total_inr'    => $o->total_amount_inr,
                 'status'       => $o->status,
                 'items'        => $o->items()->count(),
@@ -171,14 +172,14 @@ class DashboardController extends Controller
         // 1. Low Stock Alerts (Red Dot)
         $lowStockProducts = Product::active()
             ->lowStock()
-            ->select('id', 'name', 'stock_quantity', 'updated_at')
+            ->select('id', 'name', 'stock', 'updated_at')
             ->limit(10)
             ->get();
 
         foreach ($lowStockProducts as $p) {
             $notifications->push([
                 'id' => 'low_stock_' . $p->id,
-                'text' => "Low stock: {$p->name} ({$p->stock_quantity} left)",
+                'text' => "Low stock: {$p->name} ({$p->stock} left)",
                 'timestamp' => $p->updated_at->toIso8601String(),
                 'dot' => 'bg-red-400',
                 'type' => 'low_stock',
@@ -270,7 +271,7 @@ class DashboardController extends Controller
             'revenue' => Order::whereMonth('created_at', $m)
                 ->whereYear('created_at', $year)
                 ->whereNotIn('status', ['cancelled'])
-                ->sum('total_amount_inr'),
+                ->sum('total_amount_paise') / 100,
             'orders'  => Order::whereMonth('created_at', $m)
                 ->whereYear('created_at', $year)
                 ->whereNotIn('status', ['cancelled'])
@@ -285,7 +286,7 @@ class DashboardController extends Controller
         return collect(range(6, 0))->map(fn ($d) => [
             'date'    => now()->subDays($d)->format('D'),
             'revenue' => Order::whereDate('created_at', now()->subDays($d))
-                ->whereNotIn('status', ['cancelled'])->sum('total_amount_inr'),
+                ->whereNotIn('status', ['cancelled'])->sum('total_amount_paise') / 100,
             'orders'  => Order::whereDate('created_at', now()->subDays($d))
                 ->whereNotIn('status', ['cancelled'])->count(),
         ])->values()->all();
@@ -296,7 +297,7 @@ class DashboardController extends Controller
         return collect(range(4, 0))->map(fn ($y) => [
             'date'    => (string) now()->subYears($y)->year,
             'revenue' => Order::whereYear('created_at', now()->subYears($y)->year)
-                ->whereNotIn('status', ['cancelled'])->sum('total_amount_inr'),
+                ->whereNotIn('status', ['cancelled'])->sum('total_amount_paise') / 100,
             'orders'  => Order::whereYear('created_at', now()->subYears($y)->year)
                 ->whereNotIn('status', ['cancelled'])->count(),
         ])->values()->all();

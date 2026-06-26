@@ -18,12 +18,63 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'total_amount_inr'    => 'integer',
-        'subtotal_inr'        => 'integer',
-        'shipping_amount_inr' => 'integer',
-        'tax_amount_inr'      => 'integer',
-        'discount_amount_inr' => 'integer',
+        'total_amount_paise'    => 'integer',
+        'subtotal_paise'        => 'integer',
+        'shipping_amount_paise' => 'integer',
+        'tax_amount_paise'      => 'integer',
+        'discount_amount_paise' => 'integer',
     ];
+
+    // ── Legacy/Compatibility Accessors and Mutators ────────────────
+    public function getTotalAmountInrAttribute()
+    {
+        return (int) ($this->total_amount_paise / 100);
+    }
+
+    public function setTotalAmountInrAttribute($value)
+    {
+        $this->attributes['total_amount_paise'] = $value * 100;
+    }
+
+    public function getSubtotalInrAttribute()
+    {
+        return (int) ($this->subtotal_paise / 100);
+    }
+
+    public function setSubtotalInrAttribute($value)
+    {
+        $this->attributes['subtotal_paise'] = $value * 100;
+    }
+
+    public function getShippingAmountInrAttribute()
+    {
+        return (int) ($this->shipping_amount_paise / 100);
+    }
+
+    public function setShippingAmountInrAttribute($value)
+    {
+        $this->attributes['shipping_amount_paise'] = $value * 100;
+    }
+
+    public function getTaxAmountInrAttribute()
+    {
+        return (int) ($this->tax_amount_paise / 100);
+    }
+
+    public function setTaxAmountInrAttribute($value)
+    {
+        $this->attributes['tax_amount_paise'] = $value * 100;
+    }
+
+    public function getDiscountAmountInrAttribute()
+    {
+        return (int) ($this->discount_amount_paise / 100);
+    }
+
+    public function setDiscountAmountInrAttribute($value)
+    {
+        $this->attributes['discount_amount_paise'] = $value * 100;
+    }
 
     // ── Relationships ─────────────────────────────────────────
     public function customer()

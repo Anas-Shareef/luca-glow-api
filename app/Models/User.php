@@ -53,7 +53,7 @@ class User extends Authenticatable
         return Attribute::make(
             get: fn () => $this->orders()
                 ->where('status', 'delivered')
-                ->sum('total_amount_inr')
+                ->sum('total_amount_paise') / 100
         );
     }
 

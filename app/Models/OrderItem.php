@@ -14,10 +14,31 @@ class OrderItem extends Model
     ];
 
     protected $casts = [
-        'quantity'       => 'integer',
-        'unit_price_inr' => 'integer',
-        'subtotal_inr'   => 'integer',
+        'quantity'          => 'integer',
+        'unit_price_paise'  => 'integer',
+        'subtotal_paise'    => 'integer',
     ];
+
+    // ── Legacy/Compatibility Accessors and Mutators ────────────────
+    public function getUnitPriceInrAttribute()
+    {
+        return (int) ($this->unit_price_paise / 100);
+    }
+
+    public function setUnitPriceInrAttribute($value)
+    {
+        $this->attributes['unit_price_paise'] = $value * 100;
+    }
+
+    public function getSubtotalInrAttribute()
+    {
+        return (int) ($this->subtotal_paise / 100);
+    }
+
+    public function setSubtotalInrAttribute($value)
+    {
+        $this->attributes['subtotal_paise'] = $value * 100;
+    }
 
     public function order()   { return $this->belongsTo(Order::class); }
     public function product() { return $this->belongsTo(Product::class); }

@@ -30,10 +30,62 @@ class Product extends Model implements HasMedia
         'is_active'               => 'boolean',
         'special_price_starts_at' => 'datetime',
         'special_price_ends_at'   => 'datetime',
-        'price_inr'               => 'integer',
-        'special_price'           => 'integer',
-        'stock_quantity'          => 'integer',
+        'price_paise'             => 'integer',
+        'compare_at_price_paise'  => 'integer',
+        'stock'                   => 'integer',
     ];
+
+    // ── Legacy/Compatibility Accessors and Mutators ────────────────
+    public function getPriceInrAttribute()
+    {
+        return (int) (($this->compare_at_price_paise ?: $this->price_paise) / 100);
+    }
+
+    public function setPriceInrAttribute($value)
+    {
+        $this->attributes['compare_at_price_paise'] = $value * 100;
+    }
+
+    public function getSpecialPriceAttribute()
+    {
+        if (!$this->compare_at_price_paise) {
+            return null;
+        }
+        return (int) ($this->price_paise / 100);
+    }
+
+    public function setSpecialPriceAttribute($value)
+    {
+        if ($value === null) {
+            if (isset($this->attributes['compare_at_price_paise'])) {
+                $this->attributes['price_paise'] = $this->attributes['compare_at_price_paise'];
+                unset($this->attributes['compare_at_price_paise']);
+            }
+            $this->attributes['compare_at_price_paise'] = null;
+        } else {
+            $this->attributes['price_paise'] = $value * 100;
+        }
+    }
+
+    public function getStockQuantityAttribute()
+    {
+        return (int) $this->stock;
+    }
+
+    public function setStockQuantityAttribute($value)
+    {
+        $this->attributes['stock'] = $value;
+    }
+
+    public function getLowStockThresholdAttribute()
+    {
+        return 10;
+    }
+
+    public function setLowStockThresholdAttribute($value)
+    {
+        // low_stock_threshold is ignored as it doesn't exist in Supabase DB
+    }
 
     // ── Relationships ─────────────────────────────────────────
     public function category()
@@ -216,7 +268,7 @@ class Product extends Model implements HasMedia
 
     public function scopeLowStock($query)
     {
-        return $query->whereColumn('stock_quantity', '<=', 'low_stock_threshold');
+        return $query->where('stock', '<=', 10);
     }
 
     public function scopeSearch($query, string $term)
