@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 // Health check
-Route::get('/up', fn () => response()->json(['status' => 'ok', 'app' => config('app.name')]));
+Route::get('/up', fn () => response()->json(['status' => 'ok', 'app' => config('app.name'), 'version' => '1.0.1']));
 
 // Maintenance mode check (called by React frontend before rendering)
 Route::get('/status', function () {
